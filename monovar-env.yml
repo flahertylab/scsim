@@ -1,0 +1,7 @@
+name: 'monovar'
+channels:
+- bioconda
+- conda-forge
+- defaults
+dependencies:
+- monovar
