@@ -5,9 +5,6 @@
 
 .PHONY: all build sh
 
-all:
-	@echo "Makefile needs your attention"
-
 build :
 	docker build -t scsim .
 

@@ -26,7 +26,7 @@ def mix_fastq(jsonconfig):
 
       # read-sample-write each single cell
       for i in range(1, len(mix_config) - 2):
-            logger.info("Processing singe cell {}...".format(i))
+            logger.info("Processing single cell {}...".format(i))
             cell_readcount = int(np.floor(mix_config['total_reads'] * mix_config['sc{}'.format(i)]['fraction']))
             etl_mix(source_path = mix_config['sc{}'.format(i)]['path'],
                   readcount = cell_readcount,

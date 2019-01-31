@@ -13,7 +13,7 @@ def read_true(refdir, NSC):
     for i in range(1, NSC + 1):
         filepath = os.path.join(refdir, 'snv_sc%d.bed' % i)
         ds = pd.read_csv(filepath, sep='\t').iloc[:,2]
-        df = pd.DataFrame({'sample': 'after_wga_exp1_sc%d' % i, 'loc': ds, 'snv': True})
+        df = pd.DataFrame({'sample': 'after_wga_sc%d' % i, 'loc': ds, 'snv': True})
         true_df = true_df.append(df, ignore_index=True, sort = True)
 
     return true_df

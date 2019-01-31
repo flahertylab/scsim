@@ -1,42 +1,67 @@
 import os
 import glob
+import numpy as np
 
 configfile: "example-config.yml"
+
 
 # Results locations
 SRC_DIR = config["SRC_DIR"]
 REF_DIR = config["REF_DIR"]
-SAMPLE_DIR = config["SAMPLE_DIR"]
 SC_DIR = config["SC_DIR"]
 BULK_DIR = config["BULK_DIR"]
 CALLS_DIR = config["CALLS_DIR"]
 LOGS_DIR = config["LOGS_DIR"]
-REF = "data/scref/ref_source.fa"
+REF = os.path.join(REF_DIR, "ref_source.fa")
 
 # Simulation parameters
 REFGENOME = config["REFGENOME"]
-NSC = config["NSC"]
-NPROTO = config["NPROTO"]
 NSNV = config["NSNV"]
-NBulk = config["NBulk"]
 SEED = config["SEED"]
+np.random.seed(SEED)
 MEAN_COV = config["MEAN_COV"]
 PBE1 = config["PBE1"]
 PBE2 = config["PBE2"]
 ADO_p = config["ADO_p"]
 FP_p = config["FP_p"]
 
+POPULATION = config["POPULATION"]
+NPROTO = len(POPULATION["alpha"])
+NBulk = 0
+SC = np.array([0 for i in range(NPROTO)])
+eps = 1e-6  # additional dirichlet factor
+G_0 = np.random.dirichlet(POPULATION["alpha"])
+G_i = []
+G_ij = []
+for bio in POPULATION:
+    if bio != "alpha":
+        G_i.append(np.random.dirichlet(G_0 * POPULATION[bio]["beta"] + eps))
+        for sample in POPULATION[bio]:
+            if sample != "beta":
+                if POPULATION[bio][sample]["SC"] is True:
+                    SC += np.random.multinomial(1, np.random.dirichlet(G_i[-1] * POPULATION[bio][sample]["gamma"] + eps))
+                else:
+                    NBulk += 1
+                    G_ij.append(np.random.dirichlet(G_i[-1] * POPULATION[bio][sample]["gamma"] + eps))
+                    G_ij.append(np.random.dirichlet(G_i[-1] * POPULATION[bio][sample]["gamma"] + eps))
+NSC = sum(SC)
+SC = list(SC)
+_SC = ''
+for i in range(len(SC)):
+    _SC += str(SC[i]) + ' '
+_SC.strip()
+
 
 wildcard_constraints:
-    single_cell = expand("after_wga_exp1_sc{samplenum}", samplenum = range(1, NSC + 1)),
-    prototype = expand("before_wga_exp1_sc{samplenum}", samplenum = range(1, NPROTO + 1)),
+    single_cell = expand("after_wga_sc{samplenum}", samplenum = range(1, NSC + 1)),
+    prototype = expand("before_wga_sc{samplenum}", samplenum = range(1, NPROTO + 1)),
     read = ["read1", "read2"],
     allele = ["a1", "a2"],
     n_b = range(1, NBulk + 1)
 
-PROTOTYPES = expand("before_wga_exp1_sc{samplenum}", samplenum = range(1, NPROTO + 1))
+PROTOTYPES = expand("before_wga_sc{samplenum}", samplenum = range(1, NPROTO + 1))
 ALLELES = ["a1", "a2"]
-SINGLE_CELLS = expand("after_wga_exp1_sc{samplenum}", samplenum = range(1, NSC + 1))
+SINGLE_CELLS = expand("after_wga_sc{samplenum}", samplenum = range(1, NSC + 1))
 READS = ["read1", "read2"]
 N_B = range(1, NBulk + 1)
 
@@ -51,20 +76,20 @@ rule all:
         A_MONOVAR = os.path.join(CALLS_DIR, "monovar/all_after.vcf"),
         B_MONOVAR = os.path.join(CALLS_DIR, "monovar/all_bulk.vcf")
     run:
-        print("Simulation completed! {} bulk cells and {} single cells ".format(NBulk, NSC) + 
+        print("Simulation completed! {} bulk cells and {} single cells ".format(NBulk, NSC) +
               "were simulated and can be found in {} and {} respectively.".format(BULK_DIR, SC_DIR))
 
 
 rule clean:
     shell:
-        "rm -rf {SC_DIR}/* {REF_DIR}/* {SAMPLE_DIR}/* {BULK_DIR}/* {CALLS_DIR}/* {LOGS_DIR}/*"
-
+        "rm -rf {SC_DIR}/* {REF_DIR}/* {BULK_DIR}/* {CALLS_DIR}/* {LOGS_DIR}/*"
 
 rule refgenome:
     output:
         REFGENOME
     shell:
         "wget -O - http://hgdownload.soe.ucsc.edu/goldenPath/hg38/chromosomes/chr20.fa.gz | gunzip -c > {output}"
+
 
 rule gen_scref:
     """Generate single-cell reference genome fasta files."""
@@ -75,10 +100,9 @@ rule gen_scref:
         BED = expand(os.path.join(REF_DIR, "snv_sc{n}.bed"), n = range(1, NSC + 1)),
         _REF = os.path.join(REF_DIR, "ref_source.fa"),
         B_FASTA = expand(os.path.join(REF_DIR, "{prototype}_{allele}.fa"), prototype = PROTOTYPES, allele = ALLELES),
-        SNV_FLAGS = os.path.join(REF_DIR, "exp1_snv_flags.md")
+        SNV_FLAGS = os.path.join(REF_DIR, "snv_flags.md")
     shell:
-        "python {SRC_DIR}/gen-scref.py -f {input} -e 1 -n {NSC} -s {NSNV} -o wga -d {REF_DIR} -sd {SEED} -fp {FP_p} -ado {ADO_p}"
-
+        "python {SRC_DIR}/gen-scref.py -f {input} -nmut {NPROTO} -s {NSNV} -o wga -d {REF_DIR} -sd {SEED} -fp {FP_p} -ado {ADO_p} -n {_SC}"
 
 
 rule gen_before_screads:
@@ -86,14 +110,16 @@ rule gen_before_screads:
     input:
         B_FASTA = expand(os.path.join(REF_DIR, "{prototype}_{allele}.fa"), prototype = PROTOTYPES, allele = ALLELES)
     output:
-        B_FASTQ_1 = temp(expand(os.path.join(SAMPLE_DIR, "{prototype}_{allele}.bwa.read1.fastq.gz"), prototype = PROTOTYPES, allele = ALLELES)),
-        B_FASTQ_2 = temp(expand(os.path.join(SAMPLE_DIR, "{prototype}_{allele}.bwa.read2.fastq.gz"), prototype = PROTOTYPES, allele = ALLELES))
+        B_FASTQ_1 = temp(expand(os.path.join(SC_DIR, "{prototype}_{allele}.bwa.read1.fastq.gz"), prototype = PROTOTYPES, allele = ALLELES)),
+        B_FASTQ_2 = temp(expand(os.path.join(SC_DIR, "{prototype}_{allele}.bwa.read2.fastq.gz"), prototype = PROTOTYPES, allele = ALLELES))
     params:
         stub = expand("{prototype}_{allele}", prototype = PROTOTYPES, allele = ALLELES)
     run:
         from subprocess import call
         for stub in params.stub:
-            call("dwgsim -e {} -E {} -R 0 -r 0 -o 1 -H -C {} data/scref/{}.fa data/screads/{}".format(PBE1, PBE2, MEAN_COV, stub, stub).split())
+            call("dwgsim -e {} -E {} -R 0 -r 0 -o 1 -H -C {} {}.fa {}".format(PBE1, PBE2, MEAN_COV, os.path.join(REF_DIR, stub), os.path.join(SC_DIR, stub)).split())
+        call("mkdir {}mutations/".format(REF_DIR), shell = True)
+        call("mv {}*before*.mutations.* {}mutations/".format(SC_DIR, REF_DIR), shell = True)
 
 
 rule gen_after_screads:
@@ -101,22 +127,24 @@ rule gen_after_screads:
     input:
         A_FASTA = expand(os.path.join(REF_DIR, "{single_cell}_{allele}.fa"), single_cell = SINGLE_CELLS, allele = ALLELES)
     output:
-        A_FASTQ_1 = temp(expand(os.path.join(SAMPLE_DIR, "{single_cell}_{allele}.bwa.read1.fastq.gz"), single_cell = SINGLE_CELLS, allele = ALLELES)),
-        A_FASTQ_2 = temp(expand(os.path.join(SAMPLE_DIR, "{single_cell}_{allele}.bwa.read2.fastq.gz"), single_cell = SINGLE_CELLS, allele = ALLELES))
+        A_FASTQ_1 = temp(expand(os.path.join(SC_DIR, "{single_cell}_{allele}.bwa.read1.fastq.gz"), single_cell = SINGLE_CELLS, allele = ALLELES)),
+        A_FASTQ_2 = temp(expand(os.path.join(SC_DIR, "{single_cell}_{allele}.bwa.read2.fastq.gz"), single_cell = SINGLE_CELLS, allele = ALLELES))
     params:
         stub = expand("{single_cell}_{allele}", single_cell = SINGLE_CELLS, allele = ALLELES)
     run:
         from subprocess import call
         for stub in params.stub:
-            call("dwgsim -e {} -E {} -R 0 -r 0 -o 1 -H -C {} data/scref/{}.fa data/screads/{}".format(PBE1, PBE2, MEAN_COV, stub, stub).split())
+            call("dwgsim -e {} -E {} -R 0 -r 0 -o 1 -H -C {} {}.fa {}".format(PBE1, PBE2, MEAN_COV, os.path.join(REF_DIR, stub), os.path.join(SC_DIR, stub)).split())
+        call("mkdir {}mutations/".format(SC_DIR), shell = True)
+        call("mv {}*after*.mutations.* {}mutations/".format(SC_DIR, SC_DIR), shell = True)
 
 
 rule combine_before_alleles:
     input:
-        B_ALLELE_1 = expand(os.path.join(SAMPLE_DIR, "{prototype}_a1.bwa.{read}.fastq.gz"), prototype = PROTOTYPES, read = READS),
-        B_ALLELE_2 = expand(os.path.join(SAMPLE_DIR, "{prototype}_a2.bwa.{read}.fastq.gz"), prototype = PROTOTYPES, read = READS)
+        B_ALLELE_1 = expand(os.path.join(SC_DIR, "{prototype}_a1.bwa.{read}.fastq.gz"), prototype = PROTOTYPES, read = READS),
+        B_ALLELE_2 = expand(os.path.join(SC_DIR, "{prototype}_a2.bwa.{read}.fastq.gz"), prototype = PROTOTYPES, read = READS)
     output:
-        B_COMBINED_ALLELES = temp(expand(os.path.join(SAMPLE_DIR, "{prototype}_a1a2.bwa.{read}.fastq.gz"), prototype = PROTOTYPES, read = READS))
+        B_COMBINED_ALLELES = temp(expand(os.path.join(SC_DIR, "{prototype}_a1a2.bwa.{read}.fastq.gz"), prototype = PROTOTYPES, read = READS))
     run:
         from subprocess import call
         for i in range(0, len(input.B_ALLELE_1)):
@@ -127,9 +155,9 @@ rule create_before_filenames:
     input:
         B_COMBINED_ALLELES = rules.combine_before_alleles.output.B_COMBINED_ALLELES
     output:
-        B_FQ_FNAMES = temp(os.path.join(SAMPLE_DIR, "B_filenames.txt"))
+        B_FQ_FNAMES = temp(os.path.join(SC_DIR, "B_filenames.txt"))
     run:
-        filenames = glob.glob('data/screads/before*_a1a2*.fastq.gz')
+        filenames = glob.glob(os.path.join(SC_DIR, "before*_a1a2*.fastq.gz"))
         with open(output.B_FQ_FNAMES, 'w') as f:
             for file in filenames:
                 f.write("%s\n" % file)
@@ -153,24 +181,26 @@ rule mix_fastq:
         BULK_FQ = output.B_R1 + output.B_R2
         with open(output.BULK_TOC, 'w') as TOC:
             for bulk_sample in range(1, 2 * NBulk + 1):
-                dist = np.random.dirichlet([0.1 for i in range(0, NPROTO)])
+                dist = G_ij[bulk_sample - 1]
                 experiment = {'total_reads': 100000, 'rng_seed': SEED, 'mix_path': BULK_FQ[bulk_sample - 1]}
-                TOC.write('Bulk sample {} consists of:\n'.format(bulk_sample))
+                if bulk_sample % 2 == 0:
+                    TOC.write('Bulk sample {} consists of:\n'.format(bulk_sample / 2))
                 with open(input.B_FQ_FNAMES, 'r') as f:
                     for proto in f:
-                        num = int(proto.split('_')[3][2:])
+                        num = int(proto.split('/')[-1].split('_')[3][2:])
                         experiment['sc{}'.format(num)] = {'fraction': dist[num - 1], 'path': proto.strip()}
-                        TOC.write('    {}% single cell {}'.format(dist[num - 1] * 100, num))
+                        if bulk_sample % 2 == 0:
+                            TOC.write('    {} of mutant reference {}\n'.format(dist[num - 1], num))
                 experiment = json.dumps(experiment)
                 mix.mix_fastq(experiment)
 
 
 rule combine_after_alleles:
     input:
-        A_ALLELE_1 = expand(os.path.join(SAMPLE_DIR, "{single_cell}_a1.bwa.{read}.fastq.gz"), single_cell = SINGLE_CELLS, read = READS),
-        A_ALLELE_2 = expand(os.path.join(SAMPLE_DIR, "{single_cell}_a2.bwa.{read}.fastq.gz"), single_cell = SINGLE_CELLS, read = READS),
+        A_ALLELE_1 = expand(os.path.join(SC_DIR, "{single_cell}_a1.bwa.{read}.fastq.gz"), single_cell = SINGLE_CELLS, read = READS),
+        A_ALLELE_2 = expand(os.path.join(SC_DIR, "{single_cell}_a2.bwa.{read}.fastq.gz"), single_cell = SINGLE_CELLS, read = READS),
     output:
-        A_COMBINED_ALLELES = temp(expand(os.path.join(SAMPLE_DIR, "{single_cell}_a1a2.bwa.{read}.fastq.gz"), single_cell = SINGLE_CELLS, read = READS)),
+        A_COMBINED_ALLELES = temp(expand(os.path.join(SC_DIR, "{single_cell}_a1a2.bwa.{read}.fastq.gz"), single_cell = SINGLE_CELLS, read = READS)),
     run:
         from subprocess import call
         for i in range(0, len(input.A_ALLELE_1)):
@@ -190,8 +220,8 @@ rule bwa_map_bulk:
     input:
         REF_INDEX = os.path.join(REF_DIR, "ref_source.fa.bwt"),
         _REF = rules.gen_scref.output._REF,
-        B_R1 = rules.mix_fastq.output.B_R1,
-        B_R2 = rules.mix_fastq.output.B_R2
+        B_R1 = expand(os.path.join(BULK_DIR, "bulk{n_b}.bwa.read1.fastq.gz"), n_b = N_B),
+        B_R2 = expand(os.path.join(BULK_DIR, "bulk{n_b}.bwa.read2.fastq.gz"), n_b = N_B)
     output:
         B_UNSORTED_BAM = temp(expand(os.path.join(BULK_DIR, "bulk{n_b}_.bam"), n_b = N_B))
     threads:
@@ -208,8 +238,8 @@ rule bwa_map_after:
     input:
         REF_INDEX = os.path.join(REF_DIR, "ref_source.fa.bwt"),
         _REF = rules.gen_scref.output._REF,
-        A_R1 = expand(os.path.join(SAMPLE_DIR, "{single_cell}_a1a2.bwa.read1.fastq.gz"), single_cell = SINGLE_CELLS),
-        A_R2 = expand(os.path.join(SAMPLE_DIR, "{single_cell}_a1a2.bwa.read2.fastq.gz"), single_cell = SINGLE_CELLS)
+        A_R1 = expand(os.path.join(SC_DIR, "{single_cell}_a1a2.bwa.read1.fastq.gz"), single_cell = SINGLE_CELLS),
+        A_R2 = expand(os.path.join(SC_DIR, "{single_cell}_a1a2.bwa.read2.fastq.gz"), single_cell = SINGLE_CELLS)
     output:
         A_UNSORTED_BAM = temp(expand(os.path.join(SC_DIR, "{single_cell}_a1a2.bam"), single_cell = SINGLE_CELLS))
     threads:

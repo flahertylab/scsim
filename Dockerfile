@@ -17,19 +17,18 @@ RUN git clone --recursive https://github.com/nh13/DWGSIM.git /opt/dwgsim && \
     make --directory /opt/dwgsim
 
 # Install scsim conda environment and make default
-COPY environment.yml /tmp/environment.yml
+COPY envs/scsim-env.yml /tmp/environment.yml
 RUN conda env create -f /tmp/environment.yml && \
-    echo "source activate scsim" > ~/.bashrc 
+    echo "source activate scsim" > ~/.bashrc
 
 # Install monovar conda environment
-COPY monovar-env.yml /tmp/monovar-env.yml
+COPY envs/monovar-env.yml /tmp/monovar-env.yml
 RUN conda env create -f /tmp/monovar-env.yml
 
 # Copy scsim into container
 COPY src /opt/scsim
 
 ENV PATH="/opt/conda/envs/scsim/bin:/opt/dwgsim:${PATH}"
-
 
 ENTRYPOINT [ "/usr/bin/tini", "--" ]
 CMD [ "/bin/bash" ]

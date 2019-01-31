@@ -1,56 +1,67 @@
 ---
 # Source directory is here
 SRC_DIR: "/opt/scsim"
-#Prototype .fa files are stored here
-REF_DIR: "data/scref/"
-#Some temporary files and mutation references (.txt and .vcf) files are stored here
-SAMPLE_DIR: "data/screads/"
-#The final bulk .bam files are stored here
+#SRC_DIR: "../src"
+# Reference and .fa files are stored here
+REF_DIR: "data/mut_ref/"
+# The final bulk .bam files are stored here
 BULK_DIR: "data/bulk_reads/"
-#The final single cell .bam files are stored here
+# The final single cell .bam files are stored here
 SC_DIR: "data/sc_reads/"
-#Log files are stored here
+# Log files are stored here
 LOGS_DIR: "logs/"
-#The results of variant callers are stored here
+# The results of variant callers are stored here
 CALLS_DIR: "calls/"
 
-
-#Reference genome you want to use to generate the simulated single cells
+# Reference genome you want to use to generate the simulated single cells
 REFGENOME: "data/chr20/chr20.fa"
-#Number of single cells to generate
-NSC: 2
-#Number of read-error free prototypes to generate
-NPROTO: 2
-#Number of single nucleotide variants each cell will have
+# Number of single nucleotide variants each cell will have
 NSNV: 100
-#Number of bulk samples to generate
-NBulk: 2
-#Random seed for reproducibility
+# Random seed for reproducibility
 SEED: 10696
-#Mean coverage depth to generate for each cell
+# Mean coverage depth to generate for each cell
 MEAN_COV: 24
-#Per base error rate on read #1
+# Per base error rate on read #1
 PBE1: 0.002
-#Per base error rate on read #2 (reverse read)
+# Per base error rate on read #2 (reverse read)
 PBE2: 0.002
-#Allelic dropout rate
+# Allelic dropout rate
 ADO_p: 0.2
-#False positive rate
+# False positive rate
 FP_p: 3.2e-5
 
-
-IND_1:
+POPULATION:
+    alpha: [0.1, 0.3, 0.6]
     BIO_1:
-        SAMP_1: {BULK: True}
-        SAMP_2: {BULK: False}
+        beta: 0.1
+        SAMPLE_1:
+            gamma: 0.1
+            SC: True
+        SAMPLE_2:
+            gamma: 0.1
+            SC: False
     BIO_2:
-        SAMP_1: {BULK: True}
-        SAMP_2: {BULK: False}
-IND_2:
-    BIO_1:
-        SAMP_1: {BULK: True}
-        SAMP_2: {BULK: True}
-    BIO_2:
-        SAMP_1: {BULK: False}
-        SAMP_2: {BULK: True}
+        beta: 0.1
+        SAMPLE_1:
+            gamma: 0.1
+            SC: True
+        SAMPLE_2:
+            gamma: 0.1
+            SC: True
+    BIO_3:
+        beta: 0.1
+        SAMPLE_1:
+            gamma: 0.1
+            SC: False
+        SAMPLE_2:
+            gamma: 0.1
+            SC: False
+    BIO_4:
+        beta: 0.1
+        SAMPLE_1:
+            gamma: 0.1
+            SC: False
+        SAMPLE_2:
+            gamma: 0.1
+            SC: True
 ...

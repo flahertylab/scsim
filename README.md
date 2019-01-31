@@ -17,11 +17,13 @@ This is a tool for simulating  next-generation sequencing data from a hierarchic
 
 The `scsim` docker image must be built before running the example. 
 
-1. Navigate the the `example` directory in the repository.
+1. Navigate the `example` directory in the repository.
 2. Run `make all`
 
 A docker container will be created and the example simulation will be run in the container.
 The simulation output will appear in the `example` folder because a shared volume is created in the container that connects to the `example` folder.
+
+The `example/test` folder contains expected results: a pdf file showing the SNV locations across samples and a csv file showing
 
 ## Contributing
 
