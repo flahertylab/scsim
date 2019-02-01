@@ -5,13 +5,17 @@ This is a tool for simulating  next-generation sequencing data from a hierarchic
 ## Getting Started
 
 1. Clone the repository to your computer.
-2. Inside the repository, run `make build` to build the =scsim= docker image.
+2. Inside the repository, run `make all` to build the =scsim= docker image and run the example.
 
 ### Prerequisites
 
 - docker
 
 ### Installing 
+
+You can run the project directly from a docker container by running `make all` which runs `make build` and `make example`.
+
+The conda environment can be installed using `make env`. But, the example needs to run `monovar` which requires a different version of python. So, it's best to build the example using the `make all` command.
 
 ## Running the tests
 
@@ -32,6 +36,7 @@ The `example/test` folder contains expected results: a pdf file showing the SNV 
 ## Authors
 
 * Collin Giguere
+* Hachem Saddiki
 * Patrick Flaherty
 
 ## License

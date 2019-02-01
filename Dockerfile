@@ -18,8 +18,8 @@ RUN git clone --recursive https://github.com/nh13/DWGSIM.git /opt/dwgsim && \
 
 # Install scsim conda environment and make default
 COPY envs/scsim-env.yml /tmp/environment.yml
-RUN conda env create -f /tmp/environment.yml && \
-    echo "source activate scsim" > ~/.bashrc
+RUN conda env create -f /tmp/environment.yml
+#RUN ln -s /opt/conda//etc/profile.d/conda.sh /etc/profile.d/conda.sh
 
 # Install monovar conda environment
 COPY envs/monovar-env.yml /tmp/monovar-env.yml
