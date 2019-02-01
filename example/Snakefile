@@ -187,7 +187,7 @@ rule mix_fastq:
                     TOC.write('Bulk sample {} consists of:\n'.format(bulk_sample / 2))
                 with open(input.B_FQ_FNAMES, 'r') as f:
                     for proto in f:
-                        num = int(proto.split('/')[-1].split('_')[3][2:])
+                        num = int(proto.split('/')[-1].split('_')[2][2:])
                         experiment['sc{}'.format(num)] = {'fraction': dist[num - 1], 'path': proto.strip()}
                         if bulk_sample % 2 == 0:
                             TOC.write('    {} of mutant reference {}\n'.format(dist[num - 1], num))

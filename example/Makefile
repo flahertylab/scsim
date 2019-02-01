@@ -1,10 +1,10 @@
-#
-# Makefile
-# flaherty, 2019-01-22 15:55
-#
+
+
 
 .PHONY: all clean
-SNAKEMAKE=docker run --rm -v $(PWD):/mnt -w /mnt scsim snakemake
+UID = $(shell id -u)
+GID = $(shell id -g)
+SNAKEMAKE=docker run --rm -v $(PWD):/mnt -w /mnt --user $(UID):$(GID) scsim snakemake
 
 all:
 	$(SNAKEMAKE) all
