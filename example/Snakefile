@@ -110,8 +110,8 @@ rule gen_before_screads:
     input:
         B_FASTA = expand(os.path.join(REF_DIR, "{prototype}_{allele}.fa"), prototype = PROTOTYPES, allele = ALLELES)
     output:
-        B_FASTQ_1 = temp(expand(os.path.join(SC_DIR, "{prototype}_{allele}.bwa.read1.fastq.gz"), prototype = PROTOTYPES, allele = ALLELES)),
-        B_FASTQ_2 = temp(expand(os.path.join(SC_DIR, "{prototype}_{allele}.bwa.read2.fastq.gz"), prototype = PROTOTYPES, allele = ALLELES))
+        B_FASTQ_1 = expand(os.path.join(SC_DIR, "{prototype}_{allele}.bwa.read1.fastq.gz"), prototype = PROTOTYPES, allele = ALLELES),
+        B_FASTQ_2 = expand(os.path.join(SC_DIR, "{prototype}_{allele}.bwa.read2.fastq.gz"), prototype = PROTOTYPES, allele = ALLELES)
     params:
         stub = expand("{prototype}_{allele}", prototype = PROTOTYPES, allele = ALLELES)
     run:
@@ -155,9 +155,10 @@ rule create_before_filenames:
     input:
         B_COMBINED_ALLELES = rules.combine_before_alleles.output.B_COMBINED_ALLELES
     output:
-        B_FQ_FNAMES = temp(os.path.join(SC_DIR, "B_filenames.txt"))
+        B_FQ_FNAMES = os.path.join(SC_DIR, "B_filenames.txt")
     run:
         filenames = glob.glob(os.path.join(SC_DIR, "before*_a1a2*.fastq.gz"))
+        filenames.sort()
         with open(output.B_FQ_FNAMES, 'w') as f:
             for file in filenames:
                 f.write("%s\n" % file)
@@ -169,30 +170,12 @@ rule mix_fastq:
         B_COMBINED_ALLELES = rules.combine_before_alleles.output.B_COMBINED_ALLELES
     output:
         BULK_TOC = os.path.join(BULK_DIR, "bulk_TOC.txt"),
-        B_R1 = temp(expand(os.path.join(BULK_DIR, "bulk{n_b}.bwa.read1.fastq.gz"), n_b = N_B)),
-        B_R2 = temp(expand(os.path.join(BULK_DIR, "bulk{n_b}.bwa.read2.fastq.gz"), n_b = N_B))
+        B_R1 = expand(os.path.join(BULK_DIR, "bulk{n_b}.bwa.read1.fastq"), n_b = N_B),
+        B_R2 = expand(os.path.join(BULK_DIR, "bulk{n_b}.bwa.read2.fastq"), n_b = N_B)
     run:
-        import numpy as np
-        import json
-        import sys
         sys.path.append(SRC_DIR)
         import mix
-
-        BULK_FQ = output.B_R1 + output.B_R2
-        with open(output.BULK_TOC, 'w') as TOC:
-            for bulk_sample in range(1, 2 * NBulk + 1):
-                dist = G_ij[bulk_sample - 1]
-                experiment = {'total_reads': 100000, 'rng_seed': SEED, 'mix_path': BULK_FQ[bulk_sample - 1]}
-                if bulk_sample % 2 == 0:
-                    TOC.write('Bulk sample {} consists of:\n'.format(bulk_sample / 2))
-                with open(input.B_FQ_FNAMES, 'r') as f:
-                    for proto in f:
-                        num = int(proto.split('/')[-1].split('_')[2][2:])
-                        experiment['sc{}'.format(num)] = {'fraction': dist[num - 1], 'path': proto.strip()}
-                        if bulk_sample % 2 == 0:
-                            TOC.write('    {} of mutant reference {}\n'.format(dist[num - 1], num))
-                experiment = json.dumps(experiment)
-                mix.mix_fastq(experiment)
+        mix.make_expts(input.B_FQ_FNAMES, input.B_COMBINED_ALLELES, output.B_R1, output.B_R2, output.BULK_TOC, G_ij, SEED)
 
 
 rule combine_after_alleles:
@@ -215,6 +198,13 @@ rule bwa_idx:
     shell:
         "bwa index {input}"
 
+rule compress_bulk_fq:
+    input:
+        os.path.join(BULK_DIR, "bulk{prefix}.fastq")
+    output:
+        os.path.join(BULK_DIR, "bulk{prefix}.fastq.gz")
+    shell:
+        "gzip {input}"
 
 rule bwa_map_bulk:
     input:
@@ -223,7 +213,7 @@ rule bwa_map_bulk:
         B_R1 = expand(os.path.join(BULK_DIR, "bulk{n_b}.bwa.read1.fastq.gz"), n_b = N_B),
         B_R2 = expand(os.path.join(BULK_DIR, "bulk{n_b}.bwa.read2.fastq.gz"), n_b = N_B)
     output:
-        B_UNSORTED_BAM = temp(expand(os.path.join(BULK_DIR, "bulk{n_b}_.bam"), n_b = N_B))
+        B_UNSORTED_BAM = temp(expand(os.path.join(BULK_DIR, "bulk{n_b}.bam"), n_b = N_B))
     threads:
         8
     log:

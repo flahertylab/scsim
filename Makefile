@@ -15,7 +15,7 @@ env:
 	conda env create -f envs/scsim-env.yml
 
 sh:
-	docker run --rm -it -v $(PWD):/mnt -w /mnt --user $(UID):$(GID) scsim "source activate scsim"
+	docker run --rm -it -v $(PWD):/mnt -w /mnt --user $(UID):$(GID) scsim
 
 # vim:ft=make
 #
