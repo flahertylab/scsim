@@ -29,9 +29,13 @@ The simulation output will appear in the `example` folder because a shared volum
 
 The `example/test` folder contains expected results: a pdf file showing the SNV locations across samples and a csv file showing
 
-## Contributing
+An IGV plot of the example output is shows shares mutations in bulk and single-cell samples.
 
-## Versioning
+![IGV Snapshot](examples/igv_snapshot.png)
+
+## Contributing
+If you'd like to contribute please fork the repository and submit a pull request.
+Or if you find an issue, add an issue to the github repository.
 
 ## Authors
 
@@ -40,5 +44,7 @@ The `example/test` folder contains expected results: a pdf file showing the SNV 
 * Patrick Flaherty
 
 ## License
+
+license:mit
 
 ## Acknowledgements

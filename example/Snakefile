@@ -2,6 +2,7 @@ import os
 import glob
 import numpy as np
 
+
 configfile: "example-config.yml"
 
 
@@ -14,6 +15,7 @@ CALLS_DIR = config["CALLS_DIR"]
 LOGS_DIR = config["LOGS_DIR"]
 REF = os.path.join(REF_DIR, "ref_source.fa")
 
+
 # Simulation parameters
 REFGENOME = config["REFGENOME"]
 NSNV = config["NSNV"]
@@ -24,6 +26,7 @@ PBE1 = config["PBE1"]
 PBE2 = config["PBE2"]
 ADO_p = config["ADO_p"]
 FP_p = config["FP_p"]
+
 
 POPULATION = config["POPULATION"]
 NPROTO = len(POPULATION["alpha"])
@@ -59,6 +62,7 @@ wildcard_constraints:
     allele = ["a1", "a2"],
     n_b = range(1, NBulk + 1)
 
+
 PROTOTYPES = expand("before_wga_sc{samplenum}", samplenum = range(1, NPROTO + 1))
 ALLELES = ["a1", "a2"]
 SINGLE_CELLS = expand("after_wga_sc{samplenum}", samplenum = range(1, NSC + 1))
@@ -74,7 +78,9 @@ rule all:
         A_BCFTOOLS = expand(os.path.join(CALLS_DIR, "bcftools/{single_cell}.vcf"), single_cell = SINGLE_CELLS),
         B_BCFTOOLS = expand(os.path.join(CALLS_DIR, "bcftools/bulk{n_b}.vcf"), n_b = N_B),
         A_MONOVAR = os.path.join(CALLS_DIR, "monovar/all_after.vcf"),
-        B_MONOVAR = os.path.join(CALLS_DIR, "monovar/all_bulk.vcf")
+        B_MONOVAR = os.path.join(CALLS_DIR, "monovar/all_bulk.vcf"),
+        B_BAM_IDX = expand(os.path.join(BULK_DIR, "bulk{n_b}.bam.bai"), n_b = N_B),
+        A_BAM_IDX = expand(os.path.join(SC_DIR, "{single_cells}.bam.bai"), single_cells = SINGLE_CELLS)
     run:
         print("Simulation completed! {} bulk cells and {} single cells ".format(NBulk, NSC) +
               "were simulated and can be found in {} and {} respectively.".format(BULK_DIR, SC_DIR))
@@ -83,6 +89,7 @@ rule all:
 rule clean:
     shell:
         "rm -rf {SC_DIR}/* {REF_DIR}/* {BULK_DIR}/* {CALLS_DIR}/* {LOGS_DIR}/*"
+
 
 rule refgenome:
     output:
@@ -198,6 +205,7 @@ rule bwa_idx:
     shell:
         "bwa index {input}"
 
+
 rule compress_bulk_fq:
     input:
         os.path.join(BULK_DIR, "bulk{prefix}.fastq")
@@ -206,6 +214,7 @@ rule compress_bulk_fq:
     shell:
         "gzip {input}"
 
+
 rule bwa_map_bulk:
     input:
         REF_INDEX = os.path.join(REF_DIR, "ref_source.fa.bwt"),
@@ -213,7 +222,7 @@ rule bwa_map_bulk:
         B_R1 = expand(os.path.join(BULK_DIR, "bulk{n_b}.bwa.read1.fastq.gz"), n_b = N_B),
         B_R2 = expand(os.path.join(BULK_DIR, "bulk{n_b}.bwa.read2.fastq.gz"), n_b = N_B)
     output:
-        B_UNSORTED_BAM = temp(expand(os.path.join(BULK_DIR, "bulk{n_b}.bam"), n_b = N_B))
+        B_UNSORTED_BAM = temp(expand(os.path.join(BULK_DIR, "bulk{n_b}i_unsorted.bam"), n_b = N_B))
     threads:
         8
     log:
@@ -270,9 +279,9 @@ rule samtools_sort_after:
 
 rule samtools_index_bulk:
     input:
-        B_SORTED_BAM = rules.samtools_sort_bulk.output.B_SORTED_BAM
+        B_SORTED_BAM = "{fname}.bam"
     output:
-        B_BAM_IDX = expand(os.path.join(BULK_DIR, "bulk{n_b}.bam.bai"), n_b = N_B)
+        B_BAM_IDX = "{fname}.bam.bai"
     shell:
         "samtools index {input.B_SORTED_BAM}"
 
