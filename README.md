@@ -31,7 +31,7 @@ The `example/test` folder contains expected results: a pdf file showing the SNV 
 
 An IGV plot of the example output is shows shares mutations in bulk and single-cell samples.
 
-![IGV Snapshot](examples/igv_snapshot.png)
+![IGV Snapshot](example/igv_snapshot.png)
 
 ## Contributing
 If you'd like to contribute please fork the repository and submit a pull request.
