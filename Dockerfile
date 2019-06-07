@@ -1,4 +1,4 @@
-FROM continuumio/miniconda:4.5.12
+FROM continuumio/miniconda:4.6.14
 
 RUN apt-get update --fix-missing && \
     apt-get install -y \
