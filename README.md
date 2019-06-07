@@ -5,7 +5,7 @@ This is a tool for simulating  next-generation sequencing data from a hierarchic
 ## Getting Started
 
 1. Clone the repository to your computer.
-2. Inside the repository, run `make all` to build the =scsim= docker image and run the example.
+2. Inside the repository, run `make all` to build the **SCSIM** docker image and run the example.
 
 ### Prerequisites
 
