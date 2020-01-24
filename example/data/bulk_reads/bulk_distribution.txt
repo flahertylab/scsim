@@ -1,0 +1,16 @@
+Bulk sample 1 consists of:
+    1.0 of mutant reference 0
+    0.0 of mutant reference 1
+    0.0 of mutant reference 2
+Bulk sample 2 consists of:
+    1.0 of mutant reference 0
+    0.0 of mutant reference 1
+    0.0 of mutant reference 2
+Bulk sample 3 consists of:
+    0.0 of mutant reference 0
+    1.0 of mutant reference 1
+    0.0 of mutant reference 2
+Bulk sample 4 consists of:
+    0.0 of mutant reference 0
+    1.0 of mutant reference 1
+    0.0 of mutant reference 2

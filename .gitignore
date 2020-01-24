@@ -1,4 +1,1 @@
 .snakemake
-data/
-calls/
-logs/
