@@ -1,7 +1,7 @@
 ---
 # Source directory is here       ****Include all trailing '/' in directory definitions****
-SRC_DIR: "/opt/scsim/"
-# Reference and .fa files are stored here
+SRC_DIR: "../src/"
+# Prototype .fa files are stored here
 REF_DIR: "data/mut_ref/"
 # The final bulk .bam files are stored here
 BULK_DIR: "data/bulk_reads/"
@@ -18,7 +18,7 @@ REFGENOME: "data/chr20/chr20.fa"
 NSNV: 100
 # Random seed for reproducibility
 SEED: 10696
-# Mean coverage depth to generate for each cell
+# Mean coverage depth to generate for each single cell
 MEAN_COV: 24
 # Per base error rate on read #1
 PBE1: 0.002

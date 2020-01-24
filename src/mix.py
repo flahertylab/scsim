@@ -26,7 +26,6 @@ def make_expts(b_fq_toc, b_compbined_alleles, b_r1, b_r2, bulk_toc, G_ij, seed):
             b_fq_fnames = open(b_fq_toc, 'r').readlines()
             logger.info("mixing fastqs")
             for num in range(len(b_fq_fnames) // 2):
-                # num = int(proto.split('/')[-1].split('_')[2][2:])
                 proto_r1 = b_fq_fnames[2*num].strip()
                 proto_r2 = b_fq_fnames[2*num+1].strip()
                 experiment['sc{}'.format(num+1)] = { 'fraction': dist[num], 
@@ -39,16 +38,14 @@ def make_expts(b_fq_toc, b_compbined_alleles, b_r1, b_r2, bulk_toc, G_ij, seed):
 
 def mix_fastq(jsonconfig):
     # Load experiment configuration from json filet
-   
+  
     mix_config = json.loads(jsonconfig)
- 
     # Set the rng
     np.random.seed(mix_config['rng_seed'])
  
     # Remove output files if they exist
     remove_file(mix_config['mix_path_r1'])
     remove_file(mix_config['mix_path_r2'])
- 
     # read-sample-write each single cell
     for i in range(1, len(mix_config) - 3):
           logger.info("Processing single cell {}...".format(i))

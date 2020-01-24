@@ -244,7 +244,7 @@ def sim_snv_flags_mtx(n_snv, n_sc):
     return(snv_mtx, p)
 
 
-def simulate_sc(source, n_snv, n_sc, sc, snv_loc=None, out='output', ts_tv_p=0.71, ts_hm_ht_p=0.5, AGCT_AGTC_p = 0.5, tv_hm_ht_p=0.8, ADO_p = 0.2, FP_p = 3.2e-5):
+def simulate_sc(source, n_snv, n_sc, sc, snv_loc=None, out='', ts_tv_p=0.71, ts_hm_ht_p=0.5, AGCT_AGTC_p = 0.5, tv_hm_ht_p=0.8, ADO_p = 0.2, FP_p = 3.2e-5):
     """ Main function to simulate single cell reference data set """
 
     """ Input:
@@ -253,7 +253,7 @@ def simulate_sc(source, n_snv, n_sc, sc, snv_loc=None, out='output', ts_tv_p=0.7
           n_sc (int): number of single cells.
           sc (list): number of single cells to generate for each of the n_sc mutant references.
           snv_loc (int list): optional list of SNV locations to simulate.
-          out (string): output file name, default is 'output'.
+          out (string): output file name, default is ''.
           ADO_p (float): allelic dropout rate, must be in [0,1].
           FP_p (float): false positive rate, must be in [0,1].
           ...
@@ -300,9 +300,9 @@ def simulate_sc(source, n_snv, n_sc, sc, snv_loc=None, out='output', ts_tv_p=0.7
             logger.info('SNV simulation {} done! Writing sequence to fasta file ...'.format(i+1))
 
             # write simulated single cell sequence to fasta
-            outname = out+'_sc%d'%(r)
+            outname = out+'%d'%(r)
             sc_fnames.append(outname) # store file names
-            write_sc(sc_obj = sc_gtypes, seq_type = 'wga_gtype', out = 'after_'+outname) # write sequence after WGA
+            write_sc(sc_obj = sc_gtypes, seq_type = 'wga_gtype', out = 'sc' + outname) # write sequence after WGA
 
             # export SNV locations to bed files
             bed_df = pd.DataFrame({'chrom': "ref_source",
@@ -315,8 +315,8 @@ def simulate_sc(source, n_snv, n_sc, sc, snv_loc=None, out='output', ts_tv_p=0.7
             # export FP locations to bed files
             r += 1
 
-        outname = out+'_sc%d'%(c+1)
-        write_sc(sc_obj = sc_gtypes, seq_type = 'alt_gtype', out = 'before_'+outname) # write sequence before WGA
+        outname = out+'%d'%(c+1)
+        write_sc(sc_obj = sc_gtypes, seq_type = 'alt_gtype', out = 'prototype' + outname) # write sequence before WGA
 
     sim_time = time.clock() - start_time # store simulation time for display
     logger.info('All done! Simulated %d SNVs in %d single cells in %.2f seconds.'%(n_snv,n_sc,sim_time))
@@ -333,7 +333,7 @@ if __name__ == '__main__':
     tg_size = 10**6     # size (in bp) of target region
     start_region = 10**5      # starting sequence index for filtering
     source_name = "/data/chr20.fa"  # source file name
-    out_name = "output"
+    out_name = ""
     seed = 10696 # seed for simulation reproducibility
     _ADO_p = 0.2 # allelic dropout rate
     _FP_p = 3.2e-5 # false positive rate
@@ -411,7 +411,7 @@ if __name__ == '__main__':
     # write filenames to text file
     ffnames = open(os.path.join(RES_DIR,'ref_fnames.txt'), "w")
     [ffnames.write("after_"+str(i)+"_a1.fa\n"+ "after_"+str(i)+"_a2.fa\n") for i in fnames]
-    [ffnames.write("before_"+str(i)+"_a1.fa\n"+"before_"+str(i)+"_a2.fa\n") for i in fnames]
+    [ffnames.write("prototype_"+str(i)+"_a1.fa\n"+"prototype_"+str(i)+"_a2.fa\n") for i in fnames]
     ffnames.write("ref_source.fa\n")
     ffnames.close()
 

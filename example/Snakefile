@@ -29,6 +29,8 @@ FP_p = config["FP_p"]
 
 
 POPULATION = config["POPULATION"]
+NAMES = {}
+NSC = 0
 NPROTO = len(POPULATION["alpha"])
 NBulk = 0
 SC = np.array([0 for i in range(NPROTO)])
@@ -42,12 +44,14 @@ for bio in POPULATION:
         for sample in POPULATION[bio]:
             if sample != "beta":
                 if POPULATION[bio][sample]["SC"] is True:
+                    NSC += 1
                     SC += np.random.multinomial(1, np.random.dirichlet(G_i[-1] * POPULATION[bio][sample]["gamma"] + eps))
+                    NAMES[('SC', bio + '_' + sample)] = NSC
                 else:
                     NBulk += 1
                     G_ij.append(np.random.dirichlet(G_i[-1] * POPULATION[bio][sample]["gamma"] + eps))
                     G_ij.append(np.random.dirichlet(G_i[-1] * POPULATION[bio][sample]["gamma"] + eps))
-NSC = sum(SC)
+                    NAMES[('bulk', bio + '_' + sample)] = NBulk
 SC = list(SC)
 _SC = ''
 for i in range(len(SC)):
@@ -56,16 +60,16 @@ _SC.strip()
 
 
 wildcard_constraints:
-    single_cell = expand("after_wga_sc{samplenum}", samplenum = range(1, NSC + 1)),
-    prototype = expand("before_wga_sc{samplenum}", samplenum = range(1, NPROTO + 1)),
+    single_cell = expand("sc{samplenum}", samplenum = range(1, NSC + 1)),
+    prototype = expand("prototype{samplenum}", samplenum = range(1, NPROTO + 1)),
     read = ["read1", "read2"],
     allele = ["a1", "a2"],
     n_b = range(1, NBulk + 1)
 
 
-PROTOTYPES = expand("before_wga_sc{samplenum}", samplenum = range(1, NPROTO + 1))
+PROTOTYPES = expand("prototype{samplenum}", samplenum = range(1, NPROTO + 1))
 ALLELES = ["a1", "a2"]
-SINGLE_CELLS = expand("after_wga_sc{samplenum}", samplenum = range(1, NSC + 1))
+SINGLE_CELLS = expand("sc{samplenum}", samplenum = range(1, NSC + 1))
 READS = ["read1", "read2"]
 N_B = range(1, NBulk + 1)
 
@@ -73,14 +77,14 @@ N_B = range(1, NBulk + 1)
 rule all:
     input:
         REFGENOME,
-        FLAGS = os.path.join(REF_DIR, "all_flags.csv"),
         BED = expand(os.path.join(REF_DIR, "snv_sc{n}.bed"), n = range(1,NSC+1)),
         A_BCFTOOLS = expand(os.path.join(CALLS_DIR, "bcftools/{single_cell}.vcf"), single_cell = SINGLE_CELLS),
         B_BCFTOOLS = expand(os.path.join(CALLS_DIR, "bcftools/bulk{n_b}.vcf"), n_b = N_B),
-        A_MONOVAR = os.path.join(CALLS_DIR, "monovar/all_after.vcf"),
+        A_MONOVAR = os.path.join(CALLS_DIR, "monovar/all_sc.vcf"),
         B_MONOVAR = os.path.join(CALLS_DIR, "monovar/all_bulk.vcf"),
-        B_BAM_IDX = expand(os.path.join(BULK_DIR, "bulk{n_b}.bam.bai"), n_b = N_B),
-        A_BAM_IDX = expand(os.path.join(SC_DIR, "{single_cells}.bam.bai"), single_cells = SINGLE_CELLS)
+        A_BIO_SAMPLES_BAM = expand(os.path.join(SC_DIR, "{names}.bam"), names = [name[1] + f'_sc{NAMES[name]}' for name in NAMES.keys() if name[0] == 'SC']),
+        B_BIO_SAMPLES_BAM = expand(os.path.join(BULK_DIR, "{names2}.bam"), names2 = [name[1] + f'_bulk{NAMES[name]}' for name in NAMES.keys() if name[0] == 'bulk']),
+        BULK_SNPS = os.path.join(BULK_DIR, "BULK_SNPS.tab")
     run:
         print("Simulation completed! {} bulk cells and {} single cells ".format(NBulk, NSC) +
               "were simulated and can be found in {} and {} respectively.".format(BULK_DIR, SC_DIR))
@@ -109,10 +113,10 @@ rule gen_scref:
         B_FASTA = expand(os.path.join(REF_DIR, "{prototype}_{allele}.fa"), prototype = PROTOTYPES, allele = ALLELES),
         SNV_FLAGS = os.path.join(REF_DIR, "snv_flags.md")
     shell:
-        "python {SRC_DIR}/gen-scref.py -f {input} -nmut {NPROTO} -s {NSNV} -o wga -d {REF_DIR} -sd {SEED} -fp {FP_p} -ado {ADO_p} -n {_SC}"
+        "python {SRC_DIR}/gen-scref.py -f {input} -nmut {NPROTO} -s {NSNV} -d {REF_DIR} -sd {SEED} -fp {FP_p} -ado {ADO_p} -n {_SC}"
 
 
-rule gen_before_screads:
+rule gen_prototype_screads:
     """Generate single-cell reads using dwgsim."""
     input:
         B_FASTA = expand(os.path.join(REF_DIR, "{prototype}_{allele}.fa"), prototype = PROTOTYPES, allele = ALLELES)
@@ -125,11 +129,10 @@ rule gen_before_screads:
         from subprocess import call
         for stub in params.stub:
             call("dwgsim -e {} -E {} -R 0 -r 0 -o 1 -H -C {} {}.fa {}".format(PBE1, PBE2, MEAN_COV, os.path.join(REF_DIR, stub), os.path.join(SC_DIR, stub)).split())
-        call("mkdir {}mutations/".format(REF_DIR), shell = True)
-        call("mv {}*before*.mutations.* {}mutations/".format(SC_DIR, REF_DIR), shell = True)
+        call("rm -rf {}*prototype*.mutations.*".format(SC_DIR), shell = True)
 
 
-rule gen_after_screads:
+rule gen_sc_screads:
     """Generate single-cell reads using dwgsim."""
     input:
         A_FASTA = expand(os.path.join(REF_DIR, "{single_cell}_{allele}.fa"), single_cell = SINGLE_CELLS, allele = ALLELES)
@@ -142,11 +145,10 @@ rule gen_after_screads:
         from subprocess import call
         for stub in params.stub:
             call("dwgsim -e {} -E {} -R 0 -r 0 -o 1 -H -C {} {}.fa {}".format(PBE1, PBE2, MEAN_COV, os.path.join(REF_DIR, stub), os.path.join(SC_DIR, stub)).split())
-        call("mkdir {}mutations/".format(SC_DIR), shell = True)
-        call("mv {}*after*.mutations.* {}mutations/".format(SC_DIR, SC_DIR), shell = True)
+        call("rm -rf {}*.mutations.*".format(SC_DIR), shell = True)
 
 
-rule combine_before_alleles:
+rule combine_prototype_alleles:
     input:
         B_ALLELE_1 = expand(os.path.join(SC_DIR, "{prototype}_a1.bwa.{read}.fastq.gz"), prototype = PROTOTYPES, read = READS),
         B_ALLELE_2 = expand(os.path.join(SC_DIR, "{prototype}_a2.bwa.{read}.fastq.gz"), prototype = PROTOTYPES, read = READS)
@@ -158,13 +160,13 @@ rule combine_before_alleles:
             call("cat {} {} > {}".format(input.B_ALLELE_1[i], input.B_ALLELE_2[i], output.B_COMBINED_ALLELES[i]), shell = True)
 
 
-rule create_before_filenames:
+rule create_prototype_filenames:
     input:
-        B_COMBINED_ALLELES = rules.combine_before_alleles.output.B_COMBINED_ALLELES
+        B_COMBINED_ALLELES = rules.combine_prototype_alleles.output.B_COMBINED_ALLELES
     output:
-        B_FQ_FNAMES = os.path.join(SC_DIR, "B_filenames.txt")
+        B_FQ_FNAMES = temp(os.path.join(SC_DIR, "B_filenames.txt"))
     run:
-        filenames = glob.glob(os.path.join(SC_DIR, "before*_a1a2*.fastq.gz"))
+        filenames = glob.glob(os.path.join(SC_DIR, "prototype*_a1a2*.fastq.gz"))
         filenames.sort()
         with open(output.B_FQ_FNAMES, 'w') as f:
             for file in filenames:
@@ -173,19 +175,19 @@ rule create_before_filenames:
 
 rule mix_fastq:
     input:
-        B_FQ_FNAMES = rules.create_before_filenames.output.B_FQ_FNAMES,
-        B_COMBINED_ALLELES = rules.combine_before_alleles.output.B_COMBINED_ALLELES
+        B_FQ_FNAMES = rules.create_prototype_filenames.output.B_FQ_FNAMES,
+        B_COMBINED_ALLELES = rules.combine_prototype_alleles.output.B_COMBINED_ALLELES
     output:
-        BULK_TOC = os.path.join(BULK_DIR, "bulk_TOC.txt"),
+        BULK_DIST = os.path.join(BULK_DIR, "bulk_distribution.txt"),
         B_R1 = expand(os.path.join(BULK_DIR, "bulk{n_b}.bwa.read1.fastq"), n_b = N_B),
         B_R2 = expand(os.path.join(BULK_DIR, "bulk{n_b}.bwa.read2.fastq"), n_b = N_B)
     run:
         sys.path.append(SRC_DIR)
         import mix
-        mix.make_expts(input.B_FQ_FNAMES, input.B_COMBINED_ALLELES, output.B_R1, output.B_R2, output.BULK_TOC, G_ij, SEED)
+        mix.make_expts(input.B_FQ_FNAMES, input.B_COMBINED_ALLELES, output.B_R1, output.B_R2, output.BULK_DIST, G_ij, SEED)
 
 
-rule combine_after_alleles:
+rule combine_sc_alleles:
     input:
         A_ALLELE_1 = expand(os.path.join(SC_DIR, "{single_cell}_a1.bwa.{read}.fastq.gz"), single_cell = SINGLE_CELLS, read = READS),
         A_ALLELE_2 = expand(os.path.join(SC_DIR, "{single_cell}_a2.bwa.{read}.fastq.gz"), single_cell = SINGLE_CELLS, read = READS),
@@ -233,7 +235,7 @@ rule bwa_map_bulk:
             call("bwa mem -t {} {} {} {} | \nsamtools view -Sb - > {}".format(threads, input._REF, input.B_R1[i], input.B_R2[i], output.B_UNSORTED_BAM[i]), shell = True)
 
 
-rule bwa_map_after:
+rule bwa_map_sc:
     input:
         REF_INDEX = os.path.join(REF_DIR, "ref_source.fa.bwt"),
         _REF = rules.gen_scref.output._REF,
@@ -264,9 +266,9 @@ rule samtools_sort_bulk:
             call("samtools sort -T {} -O bam {} > {}".format(params.stub[i], input.B_UNSORTED_BAM[i], output.B_SORTED_BAM[i]), shell = True)
 
 
-rule samtools_sort_after:
+rule samtools_sort_sc:
     input:
-        A_UNSORTED_BAM = rules.bwa_map_after.output.A_UNSORTED_BAM
+        A_UNSORTED_BAM = rules.bwa_map_sc.output.A_UNSORTED_BAM
     output:
         A_SORTED_BAM = expand(os.path.join(SC_DIR, "{single_cell}.bam"), single_cell = SINGLE_CELLS)
     params:
@@ -279,16 +281,18 @@ rule samtools_sort_after:
 
 rule samtools_index_bulk:
     input:
-        B_SORTED_BAM = "{fname}.bam"
+        B_SORTED_BAM = rules.samtools_sort_bulk.output.B_SORTED_BAM
     output:
-        B_BAM_IDX = "{fname}.bam.bai"
-    shell:
-        "samtools index {input.B_SORTED_BAM}"
+        B_BAM_IDX = temp(expand(os.path.join(BULK_DIR, "bulk{n_b}.bam.bai"), n_b = N_B))
+    run:
+        from subprocess import call
+        for i in range(len(input.B_SORTED_BAM)):
+            call(f"samtools index {input.B_SORTED_BAM[i]}", shell = True)
 
 
-rule samtools_index_after:
+rule samtools_index_sc:
     input:
-        A_SORTED_BAM = rules.samtools_sort_after.output.A_SORTED_BAM
+        A_SORTED_BAM = rules.samtools_sort_sc.output.A_SORTED_BAM
     output:
         A_BAM_IDX = os.path.join(SC_DIR, "{single_cell}.bam.bai")
     shell:
@@ -307,9 +311,9 @@ rule make_bulk_bam_filenames:
                 f.write("%s\n" % file)
 
 
-rule make_after_bam_filenames:
+rule make_sc_bam_filenames:
     input:
-        A_SORTED_BAM = rules.samtools_sort_after.output.A_SORTED_BAM
+        A_SORTED_BAM = rules.samtools_sort_sc.output.A_SORTED_BAM
     output:
         A_BAM_FNAMES = temp(os.path.join(SC_DIR, "SC_filenames.txt"))
     run:
@@ -319,11 +323,22 @@ rule make_after_bam_filenames:
                 f.write("%s\n" % file)
 
 
+rule make_bulk_snps:
+    input:
+        B_BAM_FNAMES = rules.make_bulk_bam_filenames.output.B_BAM_FNAMES,
+        B_BAM_IDX = rules.samtools_index_bulk.output.B_BAM_IDX,
+        FLAGS = os.path.join(REF_DIR, "true_mutations_all_sc.csv")
+    output:
+        BULK_SNPS = os.path.join(BULK_DIR, "BULK_SNPS.tab")
+    shell:
+        "source {SRC_DIR}bulksnpgen.sh {input.FLAGS} {input.B_BAM_FNAMES} {BULK_DIR} {REF_DIR}"
+
+
 rule make_all_flags:
     input:
         SNV_FLAGS = rules.gen_scref.output.SNV_FLAGS
     output:
-        ALL_FLAGS = os.path.join(REF_DIR, "all_flags.csv")
+        ALL_FLAGS = os.path.join(REF_DIR, "true_mutations_all_sc.csv")
     shell:
         "python {SRC_DIR}/md2csv-flags.py {input.SNV_FLAGS} {REF_DIR}"
 
@@ -340,16 +355,18 @@ rule monovar_bulk_call:
         "source {SRC_DIR}/monovar_wrapper.sh {REF} {input.B_BAM_FNAMES} {output.B_CALLS}"
 
 
-rule monovar_after_call:
+rule monovar_sc_call:
     input:
-        A_BAM_FNAMES = rules.make_after_bam_filenames.output.A_BAM_FNAMES,
-        A_SORTED_BAM = rules.samtools_sort_after.output.A_SORTED_BAM
+        A_BAM_FNAMES = rules.make_sc_bam_filenames.output.A_BAM_FNAMES,
+        A_SORTED_BAM = rules.samtools_sort_sc.output.A_SORTED_BAM
     output:
-        A_CALLS = os.path.join(CALLS_DIR, "monovar/all_after.vcf")
+        A_CALLS = os.path.join(CALLS_DIR, "monovar/all_sc.vcf")
     log:
-        A_LOGS = os.path.join(LOGS_DIR, "monovar/all_after.log")
+        A_LOGS = os.path.join(LOGS_DIR, "monovar/all_sc.log")
+    conda:
+        "../envs/monovar-env.yml"
     shell:
-        "source {SRC_DIR}/monovar_wrapper.sh {REF} {input.A_BAM_FNAMES} {output.A_CALLS}"
+        "source {SRC_DIR}monovar_wrapper.sh {REF} {input.A_BAM_FNAMES} {output.A_CALLS}"
 
 
 rule bcftools_bulk_call:
@@ -365,9 +382,9 @@ rule bcftools_bulk_call:
             call("samtools mpileup -g -f {} {} | bcftools call -mv - > {} 2> {}".format(REF, input.B_SORTED_BAM[i], output.B_CALLS[i], log.B_LOGS[i]), shell = True)
 
 
-rule bcftools_after_call:
+rule bcftools_sc_call:
     input:
-        A_SORTED_BAM = rules.samtools_sort_after.output.A_SORTED_BAM
+        A_SORTED_BAM = rules.samtools_sort_sc.output.A_SORTED_BAM
     output:
         A_CALLS = expand(os.path.join(CALLS_DIR, "bcftools/{single_cell}.vcf"), single_cell = SINGLE_CELLS)
     log:
@@ -376,4 +393,24 @@ rule bcftools_after_call:
         from subprocess import call
         for i in range(0, len(input.A_SORTED_BAM)):
             call("samtools mpileup -g -f {} {} | bcftools call -mv - > {} 2> {}".format(REF, input.A_SORTED_BAM[i], output.A_CALLS[i], log.A_LOGS[i]), shell = True)
+
+
+rule change_filenames:
+    input:
+        rules.bcftools_sc_call.output.A_CALLS,
+        rules.bcftools_bulk_call.output.B_CALLS,
+        rules.monovar_sc_call.output.A_CALLS,
+        rules.monovar_bulk_call.output.B_CALLS,
+        rules.make_bulk_snps.output.BULK_SNPS
+    output:
+        A_BIO_SAMPLES_BAM = expand(os.path.join(SC_DIR, "{names}.bam"), names = [name[1] + f'_sc{NAMES[name]}' for name in NAMES.keys() if name[0] == 'SC']),
+        B_BIO_SAMPLES_BAM = expand(os.path.join(BULK_DIR, "{names2}.bam"), names2 = [name[1] + f'_bulk{NAMES[name]}' for name in NAMES.keys() if name[0] == 'bulk'])
+    run:
+        from subprocess import call
+        call(f"rm -rf {SC_DIR}*.fastq* {BULK_DIR}*.tab.* {BULK_DIR}*.fastq* {BULK_DIR}bulk*.bam.tab {BULK_DIR}pos.bed", shell = True)
+        for name in NAMES:
+            if name[0] == 'SC':
+                call(f"mv {SC_DIR}sc{NAMES[name]}.bam {SC_DIR}{name[1]}_sc{NAMES[name]}.bam", shell = True)
+            elif name[0] == 'bulk':
+                call(f"mv {BULK_DIR}bulk{NAMES[name]}.bam {BULK_DIR}{name[1]}_bulk{NAMES[name]}.bam", shell = True)
 
