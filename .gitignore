@@ -1,1 +1,4 @@
 .snakemake
+example/data
+example/logs
+example/calls
