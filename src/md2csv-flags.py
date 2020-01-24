@@ -21,12 +21,12 @@ def convert_to_SCs(flags):
     return s_flags
 
 def write_file(flags_list, REF_DIR):
-    with open(os.path.join(REF_DIR, 'true_mutations_all_sc.csv'), 'w+') as f:
+    with open(os.path.join(REF_DIR, 'true_mutations_all_proto.csv'), 'w+') as f:
         f.write('sample,pos,snv_flag\n')
         for SC in flags_list:
             for flag in SC:
-                if flag[0] is not 'S':
-                    f.write('{},{},{}\n'.format(int(SC[0][2:]), flag[0], flag[1]))
+                if flag[0] is not 'P':
+                    f.write('{},{},{}\n'.format(int(SC[0][5:]), flag[0], flag[1]))
 
 if __name__ == '__main__':
     write_file(convert_to_SCs(sys.argv[1]), sys.argv[2])

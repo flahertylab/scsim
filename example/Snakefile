@@ -327,7 +327,7 @@ rule make_bulk_snps:
     input:
         B_BAM_FNAMES = rules.make_bulk_bam_filenames.output.B_BAM_FNAMES,
         B_BAM_IDX = rules.samtools_index_bulk.output.B_BAM_IDX,
-        FLAGS = os.path.join(REF_DIR, "true_mutations_all_sc.csv")
+        FLAGS = os.path.join(REF_DIR, "true_mutations_all_proto.csv")
     output:
         BULK_SNPS = os.path.join(BULK_DIR, "BULK_SNPS.tab")
     shell:
@@ -338,7 +338,7 @@ rule make_all_flags:
     input:
         SNV_FLAGS = rules.gen_scref.output.SNV_FLAGS
     output:
-        ALL_FLAGS = os.path.join(REF_DIR, "true_mutations_all_sc.csv")
+        ALL_FLAGS = os.path.join(REF_DIR, "true_mutations_all_proto.csv")
     shell:
         "python {SRC_DIR}/md2csv-flags.py {input.SNV_FLAGS} {REF_DIR}"
 

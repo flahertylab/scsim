@@ -46,7 +46,7 @@ def write_snv_mtx(snv_mtx, snv_loc, e):
     snv_df = pd.DataFrame(snv_mtx)
 
     # rename dataframe rows and columns
-    snv_df.columns = ["SC%d" % i for i in range(1,n_sc+1)]
+    snv_df.columns = ["PROTO%d" % i for i in range(1,n_sc+1)]
     snv_df.index = snv_loc+1
 
     # write data frame to markdown
@@ -214,20 +214,20 @@ def simulate_snv(source, snv_loc, alt_gtype, ADO_p = 0.2, FP_p = 3.2e-5):
     return(sc_gtypes)
 
 
-def sim_snv_flags_mtx(n_snv, n_sc):
+def sim_snv_flags_mtx(n_snv, n_proto):
     """ Function to simulate SNV flags matrix """
 
     # initialize SNV flags matrix
-    snv_mtx = np.zeros((n_snv,n_sc), dtype=bool)
+    snv_mtx = np.zeros((n_snv,n_proto), dtype=bool)
 
     # prepare indices for three simulation scenarios
     row_idx = np.linspace(start=0, stop=n_snv, num=4).astype(int)
     col_idx = int(n_sc/2)
 
-    # scenario (1): all single cells share one third of the SNV locations
+    # scenario (1): all prototypes share one third of the SNV locations
     snv_mtx[:row_idx[1],] = True
 
-    # scenario (2): half of the single cells share one third
+    # scenario (2): half of the prototypes share one third
     # of the SNV locations
     snv_mtx[row_idx[1]:row_idx[2], col_idx:] = True
 
@@ -239,7 +239,7 @@ def sim_snv_flags_mtx(n_snv, n_sc):
         p[i] = ss.uniform.rvs(0,1)
         # simulate SNV locations (encoded as '1's) for all single cells
         # in row i, based on simulated proportion p_i
-        snv_mtx[i] = ss.binom.rvs(1, p[i], size=n_sc) == 1
+        snv_mtx[i] = ss.binom.rvs(1, p[i], size=n_proto) == 1
 
     return(snv_mtx, p)
 
@@ -270,6 +270,8 @@ def simulate_sc(source, n_snv, n_sc, sc, snv_loc=None, out='', ts_tv_p=0.71, ts_
     # source sequence length
     N = len(source)
 
+    n_proto = len(sc)
+
     if snv_loc is None:
         # sample snv locations across source
         # NB: avoid extremities of the sequence
@@ -279,7 +281,7 @@ def simulate_sc(source, n_snv, n_sc, sc, snv_loc=None, out='', ts_tv_p=0.71, ts_
         snv_loc = snv_loc
 
     # simulate SNV flags matrix
-    (snv_mtx, p_lst) = sim_snv_flags_mtx(n_snv, n_sc)
+    (snv_mtx, p_lst) = sim_snv_flags_mtx(n_snv, n_proto)
 
     # generate alternate genotypes for all snv locations
     T_snv = gen_snv_transition_matrix()
@@ -399,7 +401,7 @@ if __name__ == '__main__':
     n_sc = sum(n_sc_lst[e-1])
     logger.info("Starting Experiment: simulating %d single cell sequences..."%(n_sc))
 
-    # simulate single cells and write to fasta files (one per allele)
+    # simulate prototypes and single cells and write to fasta files (one per allele)
     exp_res = simulate_sc(source=source, n_snv=n_snv, n_sc=n_sc, sc=n_sc_lst[e-1], out=out_name, ADO_p = _ADO_p, FP_p = _FP_p)
 
     # store filenames
