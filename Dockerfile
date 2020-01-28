@@ -21,13 +21,6 @@ COPY envs/scsim-env.yml /tmp/environment.yml
 RUN conda env create -f /tmp/environment.yml
 #RUN ln -s /opt/conda//etc/profile.d/conda.sh /etc/profile.d/conda.sh
 
-# Install monovar conda environment
-COPY envs/monovar-env.yml /tmp/monovar-env.yml
-RUN conda env create -f /tmp/monovar-env.yml
-
-# Install bam-readcount conda environment
-COPY envs/bam-readcount-env.yml /tmp/bam-readcount-env.yml
-RUN conda env create -f /tmp/bam-readcount-env.yml
 
 # Copy scsim into container
 COPY src /opt/scsim
