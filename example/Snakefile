@@ -331,7 +331,7 @@ rule make_bulk_snps:
     output:
         BULK_SNPS = os.path.join(BULK_DIR, "BULK_SNPS.tab")
     shell:
-        "source {SRC_DIR}bulksnpgen.sh {input.FLAGS} {input.B_BAM_FNAMES} {BULK_DIR} {REF_DIR}"
+        "source {SRC_DIR}/bulksnpgen.sh {input.FLAGS} {input.B_BAM_FNAMES} {BULK_DIR} {REF_DIR}"
 
 
 rule make_all_flags:
