@@ -331,7 +331,7 @@ rule make_bulk_snps:
     output:
         BULK_SNPS = os.path.join(BULK_DIR, "BULK_SNPS.tab")
     conda:
-        "/tmp/bam-readcount-env.yml"
+        "../envs/bam-readcount-env.yml"
     shell:
         "source {SRC_DIR}/bulksnpgen.sh {input.FLAGS} {input.B_BAM_FNAMES} {BULK_DIR} {REF_DIR}"
 
@@ -352,7 +352,7 @@ rule monovar_bulk_call:
     output:
         B_CALLS = os.path.join(CALLS_DIR, "monovar/all_bulk.vcf")
     conda:
-        "/tmp/monovar-env.yml"
+        "../envs/monovar-env.yml"
     log:
         B_LOGS = os.path.join(LOGS_DIR, "monovar/all_bulk.log")
     shell:
@@ -368,7 +368,7 @@ rule monovar_sc_call:
     log:
         A_LOGS = os.path.join(LOGS_DIR, "monovar/all_sc.log")
     conda:
-        "/tmp/monovar-env.yml"
+        "../envs/monovar-env.yml"
     shell:
         "source {SRC_DIR}/monovar_wrapper.sh {REF} {input.A_BAM_FNAMES} {output.A_CALLS}"
 
