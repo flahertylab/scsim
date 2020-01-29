@@ -27,7 +27,7 @@ The `scsim` docker image must be built before running the example.
 A docker container will be created and the example simulation will be run in the container.
 The simulation output will appear in the `example` folder because a shared volume is created in the container that connects to the `example` folder.
 
-The `example/test` folder contains expected results: a pdf file showing the SNV locations across samples and a csv file showing
+The `example/test` folder contains expected results: a csv file showing the actual SNV locations across the three prototypes and txt files showing where bcftools and monovar called SNVs.
 
 An IGV plot of the example output is shows shares mutations in bulk and single-cell samples.
 
@@ -42,6 +42,8 @@ Or if you find an issue, add an issue to the github repository.
 * Collin Giguere
 * Hachem Saddiki
 * Patrick Flaherty
+* Vishal Sarsani
+* Harsh Dubey
 
 ## License
 
