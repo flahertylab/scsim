@@ -84,7 +84,10 @@ rule all:
         B_MONOVAR = os.path.join(CALLS_DIR, "monovar/all_bulk.vcf"),
         A_BIO_SAMPLES_BAM = expand(os.path.join(SC_DIR, "{names}.bam"), names = [name[1] + f'_sc{NAMES[name]}' for name in NAMES.keys() if name[0] == 'SC']),
         B_BIO_SAMPLES_BAM = expand(os.path.join(BULK_DIR, "{names2}.bam"), names2 = [name[1] + f'_bulk{NAMES[name]}' for name in NAMES.keys() if name[0] == 'bulk']),
-        BULK_SNPS = os.path.join(BULK_DIR, "BULK_SNPS.tab")
+        BULK_SNPS = os.path.join(BULK_DIR, "BULK_SNPS.tab"),
+        GOLDEN = os.path.join(REF_DIR, 'golden.txt'),
+        MONOVAR_RES = os.path.join(CALLS_DIR, 'monovar/monovar.txt'),
+        BCFTOOLS_RES = os.path.join(CALLS_DIR, 'bcftools/bcftools.txt')
     run:
         print("Simulation completed! {} bulk cells and {} single cells ".format(NBulk, NSC) +
               "were simulated and can be found in {} and {} respectively.".format(BULK_DIR, SC_DIR))
@@ -414,3 +417,17 @@ rule change_filenames:
             elif name[0] == 'bulk':
                 call(f"mv {BULK_DIR}bulk{NAMES[name]}.bam {BULK_DIR}{name[1]}_bulk{NAMES[name]}.bam", shell = True)
 
+
+rule vennfig_datagen:
+    input:
+        rules.bcftools_sc_call.output.A_CALLS,
+        rules.bcftools_bulk_call.output.B_CALLS,
+        rules.monovar_sc_call.output.A_CALLS,
+        rules.monovar_bulk_call.output.B_CALLS,
+        rules.make_all_flags.output.ALL_FLAGS
+    output:
+        GOLDEN = os.path.join(REF_DIR, 'golden.txt'),
+        MONOVAR = os.path.join(CALLS_DIR, 'monovar/monovar.txt'),
+        BCFTOOLS = os.path.join(CALLS_DIR, 'bcftools/bcftools.txt')
+    shell:
+        "source {SRC_DIR}vennfig_datagen.sh {CALLS_DIR}bcftools/ {CALLS_DIR}monovar/ {REF_DIR}"
