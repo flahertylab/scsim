@@ -66,8 +66,8 @@ def write_fasta(seq, desc):
     # write header and sequence to file
     with open(os.path.join(RES_DIR, out), "w") as fasta_f:
         ns = fasta_f.write(">" + str(desc) + "\n" + ''.join(seq) + "\n")
+        logger.debug("Wrote {}.".format(os.path.join(RES_DIR,out)))
         fasta_f.flush()
-        logger.debug("Wrote {} characters to {}.".format(ns, os.path.join(RES_DIR,out)))
 
 def write_sc(sc_obj, seq_type='wga_gtype', out="output"):
     """ Utility function to write a sequence to two fasta files,
@@ -294,12 +294,12 @@ def simulate_sc(source, n_snv, n_sc, sc, snv_loc=None, out='', ts_tv_p=0.71, ts_
     r = 1
     for c in range(len(sc)):
 
-        logger.info('Simulating mutant reference {} with {} single cells ...'.format(c+1, sc[c]))
+        logger.info('Simulating prototype {} with {} single cells ...'.format(c+1, sc[c]))
 
         sc_gtypes = simulate_snv(source, snv_loc[snv_mtx[:,c]], alt_gtype)
 
         for i in range(sc[c]):
-            logger.info('SNV simulation {} done! Writing sequence to fasta file ...'.format(i+1))
+            logger.info('Single cell simulation {} done! Writing sequence to fasta file ...'.format(i+1))
 
             # write simulated single cell sequence to fasta
             outname = out+'%d'%(r)
@@ -321,7 +321,7 @@ def simulate_sc(source, n_snv, n_sc, sc, snv_loc=None, out='', ts_tv_p=0.71, ts_
         write_sc(sc_obj = sc_gtypes, seq_type = 'alt_gtype', out = 'prototype' + outname) # write sequence before WGA
 
     sim_time = time.clock() - start_time # store simulation time for display
-    logger.info('All done! Simulated %d SNVs in %d single cells in %.2f seconds.'%(n_snv,n_sc,sim_time))
+    logger.info('All done! Simulated %d SNVs in %d prototypes and %d single cells in %.2f seconds.'%(n_snv,len(sc),n_sc,sim_time))
 
     # pack experiment results
     exp_res = dict(sc_fnames=sc_fnames, snv_mtx = snv_mtx, snv_loc=snv_loc)
@@ -399,7 +399,7 @@ if __name__ == '__main__':
     # loop through experiments
     # get number of cells to simulate in current experiment
     n_sc = sum(n_sc_lst[e-1])
-    logger.info("Starting Experiment: simulating %d single cell sequences..."%(n_sc))
+    logger.info("Starting Experiment: simulating %d prototypes and %d single cell sequences..."%(len(n_sc_lst[e-1]),n_sc))
 
     # simulate prototypes and single cells and write to fasta files (one per allele)
     exp_res = simulate_sc(source=source, n_snv=n_snv, n_sc=n_sc, sc=n_sc_lst[e-1], out=out_name, ADO_p = _ADO_p, FP_p = _FP_p)

@@ -13,6 +13,7 @@ SC_DIR = config["SC_DIR"]
 BULK_DIR = config["BULK_DIR"]
 CALLS_DIR = config["CALLS_DIR"]
 LOGS_DIR = config["LOGS_DIR"]
+ENVS_DIR = config["ENVS_DIR"]
 REF = os.path.join(REF_DIR, "ref_source.fa")
 
 
@@ -367,7 +368,7 @@ rule monovar_sc_call:
     log:
         A_LOGS = os.path.join(LOGS_DIR, "monovar/all_sc.log")
     conda:
-        "../envs/monovar-env.yml"
+        "{ENVS_DIR}monovar-env.yml"
     shell:
         "source {SRC_DIR}monovar_wrapper.sh {REF} {input.A_BAM_FNAMES} {output.A_CALLS}"
 
@@ -410,7 +411,7 @@ rule change_filenames:
         B_BIO_SAMPLES_BAM = expand(os.path.join(BULK_DIR, "{names2}.bam"), names2 = [name[1] + f'_bulk{NAMES[name]}' for name in NAMES.keys() if name[0] == 'bulk'])
     run:
         from subprocess import call
-        call(f"rm -rf {SC_DIR}*.fastq* {BULK_DIR}*.tab.* {BULK_DIR}*.fastq* {BULK_DIR}bulk*.bam.tab {BULK_DIR}pos.bed temp.count temp.tab", shell = True)
+        call(f"rm -rf {SC_DIR}*.fastq* {BULK_DIR}*.tab.* {BULK_DIR}*.fastq* {BULK_DIR}bulk*.mat {BULK_DIR}bulk*.bam.tab {BULK_DIR}pos.bed temp.count temp.tab", shell = True)
         for name in NAMES:
             if name[0] == 'SC':
                 call(f"mv {SC_DIR}sc{NAMES[name]}.bam {SC_DIR}{name[1]}_sc{NAMES[name]}.bam", shell = True)

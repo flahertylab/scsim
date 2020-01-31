@@ -11,6 +11,8 @@ SC_DIR: "data/sc_reads/"
 LOGS_DIR: "logs/"
 # The results of variant callers are stored here
 CALLS_DIR: "calls/"
+# The environments to run the tool are stored here
+ENVS_DIR: "../envs/"
 
 # Reference genome you want to use to generate the simulated single cells
 REFGENOME: "data/chr20/chr20.fa"
