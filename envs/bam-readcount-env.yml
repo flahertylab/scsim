@@ -1,0 +1,12 @@
+name: 'bam-readcount'
+channels:
+- bioconda
+- conda-forge
+- defaults
+dependencies:
+- bam-readcount=0.8
+- libgcc-ng=7.3.0
+- ncurses=6.1
+- perl=5.26.2
+- python=2.7
+- zlib=1.2.11
