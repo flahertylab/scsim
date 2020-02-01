@@ -13,7 +13,6 @@ SC_DIR = config["SC_DIR"]
 BULK_DIR = config["BULK_DIR"]
 CALLS_DIR = config["CALLS_DIR"]
 LOGS_DIR = config["LOGS_DIR"]
-ENVS_DIR = config["ENVS_DIR"]
 REF = os.path.join(REF_DIR, "ref_source.fa")
 
 
@@ -372,7 +371,7 @@ rule monovar_sc_call:
     log:
         A_LOGS = os.path.join(LOGS_DIR, "monovar/all_sc.log")
     conda:
-        "{ENVS_DIR}monovar-env.yml"
+        "../envs/monovar-env.yml"
     shell:
         "source {SRC_DIR}/monovar_wrapper.sh {REF} {input.A_BAM_FNAMES} {output.A_CALLS}"
 
