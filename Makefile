@@ -1,5 +1,3 @@
-
-
 .PHONY: all build sh
 
 UID = $(shell id -u)
@@ -14,8 +12,8 @@ build:
 env:
 	conda env create -f envs/scsim-env.yml
 
-sh:
-	docker run --rm -it -v $(PWD):/mnt -w /mnt --user $(UID):$(GID) scsim
+bash:
+	docker run --rm -it -v $(PWD):/mnt -w /mnt --user $(UID):$(GID) scsim bash
 
 # vim:ft=make
 #
