@@ -44,6 +44,7 @@ Or if you find an issue, add an issue to the github repository.
 * Patrick Flaherty
 * Vishal Sarsani
 * Harsh Dubey
+* Shai He
 
 ## License
 
