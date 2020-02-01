@@ -26,11 +26,11 @@ RUN rm /etc/profile.d/conda.sh && \
 
 # Install monovar conda environment
 COPY envs/monovar-env.yml /envs/monovar-env.yml
-RUN conda env create -f /envs/monovar-env.yml
+#RUN conda env create -f /envs/monovar-env.yml
 
 # Install bam-readcount conda environment
 COPY envs/bam-readcount-env.yml /envs/bam-readcount-env.yml
-RUN conda env create -f /envs/bam-readcount-env.yml
+#RUN conda env create -f /envs/bam-readcount-env.yml
 
 # Copy scsim into container
 COPY src /src
