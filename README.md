@@ -11,6 +11,23 @@ This is a tool for simulating  next-generation sequencing data from a hierarchic
 
 - docker
 
+You can check your docker installation with `$ docker run hello-world`.
+
+If you get an error that you don't have permissions to run docker, the official documentation has the way to fix that error https://docs.docker.com/install/linux/linux-postinstall/#manage-docker-as-a-non-root-user.
+1. Create the docker group.
+```sh
+$ sudo groupadd docker
+```
+2. Add your user to the docker group.
+```sh
+$ sudo usermod -aG docker $USER
+```
+3. Log out and log back in so that your group membership is re-evaluated (you may need a restart).
+4. Verify that you can run docker commands without sudo.
+```sh
+$ docker run hello-world
+```
+
 ### Installing 
 
 You can run the project directly from a docker container by running `make all` which runs `make build` and `make example`.
