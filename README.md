@@ -57,14 +57,13 @@ Or if you find an issue, add an issue to the github repository.
 ## Authors
 
 * Collin Giguere
-* Hachem Saddiki
-* Patrick Flaherty
-* Vishal Sarsani
 * Harsh Dubey
+* Vishal Sarsani
+* Hachem Saddiki
 * Shai He
+* Patrick Flaherty
 
 ## License
-
-license:mit
+MIT (see LICENSE.md)
 
 ## Acknowledgements
