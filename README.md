@@ -11,6 +11,7 @@ This is a tool for simulating  next-generation sequencing data from a hierarchic
 
 - docker
 
+#### Docker without sudo
 You can check your docker installation with `$ docker run hello-world`.
 
 If you get an error that you don't have permissions to run docker, the official documentation has the way to fix that error https://docs.docker.com/install/linux/linux-postinstall/#manage-docker-as-a-non-root-user.
@@ -27,6 +28,9 @@ $ sudo usermod -aG docker $USER
 ```sh
 $ docker run hello-world
 ```
+
+#### Virtualbox
+If you are testing or running this software in a virtualbox environment, make sure you allocate at least 20Gb of disk space and 8Gb of RAM.
 
 ### Installing 
 
