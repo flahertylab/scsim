@@ -289,7 +289,7 @@ def simulate_sc(source, n_snv, n_sc, sc, snv_loc=None, out='', ts_tv_p=0.71, ts_
                  for loc in snv_loc}
 
     # loop through single cells
-    start_time = time.clock() # start timer
+    start_time = time.perf_counter() # start timer
     sc_fnames = []
     r = 1
     for c in range(len(sc)):
@@ -320,7 +320,7 @@ def simulate_sc(source, n_snv, n_sc, sc, snv_loc=None, out='', ts_tv_p=0.71, ts_
         outname = out+'%d'%(c+1)
         write_sc(sc_obj = sc_gtypes, seq_type = 'alt_gtype', out = 'prototype' + outname) # write sequence before WGA
 
-    sim_time = time.clock() - start_time # store simulation time for display
+    sim_time = time.perf_counter() - start_time # store simulation time for display
     logger.info('All done! Simulated %d SNVs in %d prototypes and %d single cells in %.2f seconds.'%(n_snv,len(sc),n_sc,sim_time))
 
     # pack experiment results
